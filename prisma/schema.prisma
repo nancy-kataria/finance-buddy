@@ -23,3 +23,10 @@ model Debate {
   createdAt    DateTime @default(now())
   user         User     @relation(fields: [userId], references: [id])
 }
+
+model FinancialInsight {
+  id        String   @id @default(uuid())
+  content   String
+  metadata  Json?
+  createdAt DateTime @default(now())
+}
