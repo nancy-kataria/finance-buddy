@@ -5,9 +5,12 @@ import { tavilySearch } from "@tavily/ai-sdk";
 import { findRelevantFinance } from "@/lib/search";
 
 /**
- * 
- * @param req 
- * @returns 
+ * Handles chat requests by gathering finance context via tool-calling,
+ * generating bull and bear analyses, and returning a structured verdict.
+ *
+ * @param req Incoming request containing messages array.
+ * @returns JSON response with `bull`, `bear`, `decision`, and `sources`,
+ * or a 500 error payload when generation fails.
  */
 export async function POST(req: Request) {
   const { messages } = await req.json();
@@ -42,13 +45,13 @@ export async function POST(req: Request) {
       generateText({
         model: openai("gpt-4o-mini"),
         system:
-          "You are a BULL analyst. Use the context to argue why this is a BUY.",
+          "You are a BULL analyst. Use the context to argue why this is a BUY. Use the specific revenue numbers and dates from the provided sources. Do not give general advice.",
         prompt: `Context: ${context}\n\nQuestion: ${lastMessage}`,
       }),
       generateText({
         model: openai("gpt-4o-mini"),
         system:
-          "You are a BEAR analyst. Use the context to argue why this is a SELL/AVOID.",
+          "You are a BEAR analyst. Use the context to argue why this is a SELL/AVOID. Use the specific revenue numbers and dates from the provided sources. Do not give general advice.",
         prompt: `Context: ${context}\n\nQuestion: ${lastMessage}`,
       }),
     ]);
