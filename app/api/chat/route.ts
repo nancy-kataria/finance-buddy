@@ -3,6 +3,7 @@ import { generateText, Output } from "ai";
 import { z } from "zod";
 import { tavilySearch } from "@tavily/ai-sdk";
 import { findRelevantFinance } from "@/lib/search";
+import { createClient } from "@/lib/supabase/server";
 
 /**
  * Handles chat requests by gathering finance context via tool-calling,
@@ -13,10 +14,16 @@ import { findRelevantFinance } from "@/lib/search";
  * or a 500 error payload when generation fails.
  */
 export async function POST(req: Request) {
-  const { messages } = await req.json();
-  const lastMessage = messages[messages.length - 1].content;
-
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    } 
+    const { messages } = await req.json();
+    const lastMessage = messages[messages.length - 1].content;
+
     // to gather context (Local RAG + Tavily Web Search)
     const { text: context } = await generateText({
       model: openai("gpt-4o"),
@@ -29,7 +36,7 @@ export async function POST(req: Request) {
             "Search internal database for historical financial insights.",
           inputSchema: z.object({ query: z.string() }),
           execute: async ({ query }) => {
-            const results = await findRelevantFinance(query);
+            const results = await findRelevantFinance(query, user.id);
             return JSON.stringify(results);
           },
         },
@@ -72,10 +79,13 @@ export async function POST(req: Request) {
       prompt: `Bull: ${bull.text}\n\nBear: ${bear.text}\n\nOriginal Context: ${context}`,
     });
 
-    const sources = verdict.steps.flatMap(step => 
-      step.toolResults.map(toolResult => {
-        return toolResult.output; 
-      })).filter(Boolean);
+    const sources = verdict.steps
+      .flatMap((step) =>
+        step.toolResults.map((toolResult) => {
+          return toolResult.output;
+        }),
+      )
+      .filter(Boolean);
 
     return Response.json({
       bull: bull.text,

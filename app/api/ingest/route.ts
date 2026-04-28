@@ -2,37 +2,12 @@ import { NextResponse } from "next/server";
 import { openai } from "@ai-sdk/openai";
 import { embed } from "ai";
 import { prisma } from "@/prisma/prisma";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { createClient } from "@/lib/supabase/server";
 
 export async function POST(req: Request) {
   try {
     // Initializing Supabase Client to get the user session
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) =>
-                cookieStore.set(name, value, options),
-              );
-            } catch (error) {
-              if (process.env.NODE_ENV === "development") {
-                console.warn(
-                  "Supabase Auth: Could not set session cookies. This is usually fine in Route Handlers.",
-                );
-              }
-            }
-          },
-        },
-      },
-    );
+    const supabase = await createClient();
 
     // Identifing the logged-in user
     const {
