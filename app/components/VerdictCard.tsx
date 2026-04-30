@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { ArrowUpRight, Gavel, TrendingUp, TrendingDown, FileText } from "lucide-react";
+import { ConfidenceGauge } from "./ConfidenceGauge";
 
 type Verdict = "BUY" | "SELL" | "HOLD";
 
@@ -41,6 +42,8 @@ export function VerdictCard({
 }: VerdictCardProps) {
   const tone = verdictTone[verdict];
 
+  const gaugeVariant = verdict === "BUY" ? "bull" : verdict === "SELL" ? "bear" : "judge";
+
   return (
     <div className={tilt ? "perspective-hero" : ""}>
       <motion.div
@@ -79,6 +82,7 @@ export function VerdictCard({
               <div className="mt-1 font-mono text-xs text-muted-foreground tabular-nums">{price}</div>
             </div>
           </div>
+          <ConfidenceGauge value={confidence} size={110} variant={gaugeVariant} />
         </div>
 
         <div className="relative grid grid-cols-1 md:grid-cols-2">
