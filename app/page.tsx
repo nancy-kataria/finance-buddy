@@ -10,12 +10,14 @@ import {
   FileSearch,
   Users,
 } from "lucide-react";
+import { TickerTape } from "./components/TickerTape";
 
 export default function Index() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Nav />
       <Hero />
+      <TickerTape />
       <HowItWorks />
       <Manifesto />
       <Footer />
