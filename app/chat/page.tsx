@@ -1,0 +1,286 @@
+"use client"
+
+import { useState, useRef, useEffect } from 'react';
+import { Scale, ArrowLeft, Send, Mic, RotateCcw, Gavel } from 'lucide-react';
+import BullBearPodium from '@/components/BullBearPodium';
+import ProcessingSteps from '@/components/ProcessingSteps';
+import DisplayVerdictCard from '@/components/DisplayVerdictCard';
+import ExhibitHall from '@/components/ExhibitHall';
+import { nvdaVerdict } from '@/data/mockVerdict';
+import type { ProcessingStep, VerdictData } from '@/types';
+
+type Phase = 'idle' | 'processing' | 'deliberating' | 'verdict';
+
+interface Props {
+  onBack: () => void;
+}
+
+const STEPS_SEQUENCE: { delay: number; id: string; label: string }[] = [
+  { delay: 400, id: 'p1', label: 'Summoning Analysts...' },
+  { delay: 1400, id: 'p2', label: 'Scanning Private Insights...' },
+  { delay: 2600, id: 'p3', label: 'Cross-referencing Web Context...' },
+  { delay: 3800, id: 'p4', label: 'Staging Deliberation...' },
+  { delay: 5200, id: 'p5', label: "Rendering Judge's Verdict..." },
+];
+
+const SUGGESTIONS = [
+  'Should I buy $NVDA given the current AI spending cycle?',
+  'Analyze $MSFT vs $GOOG for a 12-month hold position',
+  'Is $QQQ overbought? Compare with my tech rotation notes.',
+  'Should I take profits on $TSLA after the recent run?',
+];
+
+export default function JuryRoomPage({ onBack }: Props) {
+  const [input, setInput] = useState('');
+  const [phase, setPhase] = useState<Phase>('idle');
+  const [steps, setSteps] = useState<ProcessingStep[]>([]);
+  const [verdict, setVerdict] = useState<VerdictData | null>(null);
+  const [showBull, setShowBull] = useState(false);
+  const [showBear, setShowBear] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const clearTimers = () => {
+    timersRef.current.forEach(clearTimeout);
+    timersRef.current = [];
+  };
+
+  const handleSubmit = () => {
+    if (!input.trim() || phase !== 'idle') return;
+    clearTimers();
+    setVerdict(null);
+    setShowBull(false);
+    setShowBear(false);
+    setPhase('processing');
+    setSteps(STEPS_SEQUENCE.map(s => ({ id: s.id, label: s.label, status: 'pending' as const })));
+
+    STEPS_SEQUENCE.forEach((seq, i) => {
+      const t1 = setTimeout(() => {
+        setSteps(prev => prev.map(s => s.id === seq.id ? { ...s, status: 'running' } : s));
+      }, seq.delay);
+
+      const doneDelay = i < STEPS_SEQUENCE.length - 1 ? STEPS_SEQUENCE[i + 1].delay - 100 : seq.delay + 1200;
+      const t2 = setTimeout(() => {
+        setSteps(prev => prev.map(s => s.id === seq.id ? { ...s, status: 'done' } : s));
+
+        if (seq.id === 'p3') {
+          setPhase('deliberating');
+          setShowBull(true);
+          setTimeout(() => setShowBear(true), 600);
+        }
+        if (seq.id === 'p5') {
+          setTimeout(() => {
+            setVerdict(nvdaVerdict);
+            setPhase('verdict');
+          }, 400);
+        }
+      }, doneDelay);
+
+      timersRef.current.push(t1, t2);
+    });
+  };
+
+  const handleReset = () => {
+    clearTimers();
+    setInput('');
+    setPhase('idle');
+    setSteps([]);
+    setVerdict(null);
+    setShowBull(false);
+    setShowBear(false);
+  };
+
+  useEffect(() => () => clearTimers(), []);
+
+  const autoResize = () => {
+    const el = textareaRef.current;
+    if (el) {
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-navy-950 flex flex-col">
+      {/* Header */}
+      <header className="flex items-center justify-between px-6 py-4 border-b border-neutral-border bg-navy-900/80 backdrop-blur-md sticky top-0 z-40">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={onBack}
+            className="flex items-center gap-1.5 text-neutral-muted hover:text-neutral-white transition-colors text-sm"
+          >
+            <ArrowLeft size={15} />
+            Back
+          </button>
+          <div className="w-px h-5 bg-neutral-border" />
+          <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-electric-dim border border-electric/30">
+              <Scale size={13} className="text-electric" />
+            </div>
+            <span className="font-mono font-bold text-sm text-neutral-white">JuryMind</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {phase !== 'idle' && (
+            <button
+              onClick={handleReset}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-neutral-border text-neutral-muted hover:text-neutral-white hover:border-neutral-muted transition-all text-xs"
+            >
+              <RotateCcw size={12} />
+              New Case
+            </button>
+          )}
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-mono ${phase === 'idle' ? 'border-neutral-border text-neutral-muted' : phase === 'verdict' ? 'border-bull/40 text-bull bg-bull-dim/20' : 'border-electric/40 text-electric bg-electric-dim/20'}`}>
+            <div className={`w-1.5 h-1.5 rounded-full ${phase === 'idle' ? 'bg-neutral-muted' : phase === 'verdict' ? 'bg-bull' : 'bg-electric animate-pulse'}`} />
+            {phase === 'idle' ? 'Standby' : phase === 'processing' ? 'Processing' : phase === 'deliberating' ? 'Deliberating' : 'Verdict Ready'}
+          </div>
+        </div>
+      </header>
+
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[320px_1fr_260px] gap-0 min-h-0">
+        {/* Left: Input */}
+        <div className="border-r border-neutral-border bg-navy-900/40 flex flex-col p-6 gap-5">
+          <div>
+            <h2 className="text-xs font-mono font-semibold text-neutral-label tracking-widest uppercase mb-1">Inquiry</h2>
+            <p className="text-xs text-neutral-muted">State your investment thesis or ask a question</p>
+          </div>
+
+          {/* Textarea */}
+          <div className="relative">
+            <textarea
+              ref={textareaRef}
+              value={input}
+              onChange={e => { setInput(e.target.value); autoResize(); }}
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit(); } }}
+              disabled={phase !== 'idle'}
+              placeholder="Should I buy $NVDA given the current AI spending cycle?"
+              className={`
+                w-full bg-navy-800 border rounded-xl px-4 py-3 text-sm text-neutral-white placeholder-neutral-muted
+                resize-none outline-none font-sans leading-relaxed min-h-[80px]
+                transition-all duration-200
+                ${phase !== 'idle' ? 'opacity-50 cursor-not-allowed border-neutral-border' : 'border-neutral-border focus:border-electric/50 focus:shadow-[0_0_0_1px_rgba(56,189,248,0.2)]'}
+              `}
+              rows={3}
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleSubmit}
+              disabled={!input.trim() || phase !== 'idle'}
+              className={`
+                flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
+                ${input.trim() && phase === 'idle'
+                  ? 'bg-electric text-navy-900 hover:bg-electric/90 shadow-[0_0_20px_rgba(56,189,248,0.3)] hover:shadow-[0_0_30px_rgba(56,189,248,0.5)]'
+                  : 'bg-navy-700 text-neutral-muted cursor-not-allowed border border-neutral-border'
+                }
+              `}
+            >
+              <Gavel size={14} />
+              Convene Jury
+              <Send size={12} />
+            </button>
+            <button
+              disabled={phase !== 'idle'}
+              className="flex items-center justify-center w-10 h-10 rounded-xl border border-neutral-border text-neutral-muted hover:text-neutral-white hover:border-neutral-muted transition-all disabled:opacity-30"
+            >
+              <Mic size={14} />
+            </button>
+          </div>
+
+          {/* Suggestions */}
+          {phase === 'idle' && (
+            <div>
+              <div className="text-xs font-mono text-neutral-muted tracking-wide mb-2">SUGGESTED QUERIES</div>
+              <div className="space-y-2">
+                {SUGGESTIONS.map((s, i) => (
+                  <button
+                    key={i}
+                    onClick={() => { setInput(s); textareaRef.current?.focus(); }}
+                    className="w-full text-left text-xs text-neutral-label px-3 py-2.5 rounded-lg border border-neutral-border hover:border-electric/30 hover:bg-navy-700/60 hover:text-neutral-white transition-all duration-150 leading-relaxed"
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Processing steps */}
+          {steps.length > 0 && (
+            <div>
+              <div className="text-xs font-mono text-neutral-muted tracking-wide mb-2">PROCESSING LOG</div>
+              <ProcessingSteps steps={steps} />
+            </div>
+          )}
+        </div>
+
+        {/* Center: Battleground */}
+        <div className="flex flex-col gap-5 p-6 overflow-y-auto">
+          {phase === 'idle' && (
+            <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center py-20">
+              <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-navy-800 border border-neutral-border">
+                <Scale size={28} className="text-neutral-muted" />
+              </div>
+              <h3 className="text-lg font-semibold text-neutral-white">The Jury Room</h3>
+              <p className="text-sm text-neutral-muted max-w-sm leading-relaxed">
+                Enter an investment question to convene the jury. Bull and Bear analysts will deliberate, and the Judge will deliver a verdict.
+              </p>
+              <div className="grid grid-cols-3 gap-3 mt-4 w-full max-w-md text-xs">
+                {[
+                  { label: 'Bull Analyst', color: 'text-bull', border: 'border-bull/20', bg: 'bg-bull-dim/10' },
+                  { label: 'Judge', color: 'text-amber-verdict', border: 'border-amber-verdict/20', bg: 'bg-amber-dim/10' },
+                  { label: 'Bear Analyst', color: 'text-bear', border: 'border-bear/20', bg: 'bg-bear-dim/10' },
+                ].map(({ label, color, border, bg }) => (
+                  <div key={label} className={`py-3 rounded-xl border ${border} ${bg} font-mono font-medium ${color} text-center`}>
+                    {label}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Deliberating: podiums */}
+          {(phase === 'deliberating' || phase === 'verdict') && (
+            <div className="grid md:grid-cols-2 gap-5">
+              {showBull && (
+                <div className="animate-slide-up">
+                  <BullBearPodium
+                    side="bull"
+                    arguments={phase === 'verdict' ? nvdaVerdict.bullArguments : []}
+                    streaming={phase === 'deliberating'}
+                  />
+                </div>
+              )}
+              {showBear && (
+                <div className="animate-slide-up" style={{ animationDelay: '0.15s' }}>
+                  <BullBearPodium
+                    side="bear"
+                    arguments={phase === 'verdict' ? nvdaVerdict.bearArguments : []}
+                    streaming={phase === 'deliberating'}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Verdict */}
+          {verdict && phase === 'verdict' && (
+            <div className="animate-slide-up" style={{ animationDelay: '0.3s' }}>
+              <div className="flex items-center gap-2 mb-3">
+                <Gavel size={14} className="text-amber-verdict" />
+                <span className="text-xs font-mono font-semibold text-amber-verdict tracking-widest uppercase">Judge&apos;s Bench</span>
+              </div>
+              <DisplayVerdictCard data={verdict} animate={false} />
+            </div>
+          )}
+        </div>
+
+        {/* Right: Exhibit Hall */}
+        <div className="border-l border-neutral-border bg-navy-900/40 hidden lg:flex flex-col overflow-hidden">
+          <ExhibitHall sources={phase === 'verdict' && verdict ? verdict.sources : []} />
+        </div>
+      </div>
+    </div>
+  );
+}
