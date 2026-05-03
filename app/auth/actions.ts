@@ -23,3 +23,18 @@ export async function signInWithGoogle() {
   // Redirect the user to Google's login page
   return redirect(data.url)
 }
+
+export async function signInWithEmail(email: string, password: string) {
+  const supabase = await createClient()
+
+  const { error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  })
+
+  if (error) {
+    return { success: false, error: error.message }
+  }
+
+  return { success: true }
+}

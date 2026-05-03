@@ -10,23 +10,28 @@ import {
   FileSearch,
   Users,
 } from "lucide-react";
+import { useState } from "react";
 import { TickerTape } from "../components/TickerTape";
 import { VerdictCard } from "../components/VerdictCard";
+import { SignInModal } from "../components/SignInModal";
 
 export default function Index() {
+  const [showSignInModal, setShowSignInModal] = useState(false);
+
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <Nav />
+      <Nav showSignInModal={showSignInModal} setShowSignInModal={setShowSignInModal} />
       <Hero />
       <TickerTape />
       <HowItWorks />
       <Manifesto />
       <Footer />
+      <SignInModal isOpen={showSignInModal} onClose={() => setShowSignInModal(false)} />
     </div>
   );
 }
 
-function Nav() {
+function Nav({ setShowSignInModal }: { showSignInModal: boolean; setShowSignInModal: (value: boolean) => void }) {
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/70 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
@@ -57,7 +62,10 @@ function Nav() {
           </a>
         </nav>
         <div className="flex items-center gap-2">
-          <button className="hidden rounded-md px-3 py-2 text-sm text-muted-foreground transition hover:text-foreground sm:inline">
+          <button 
+            onClick={() => setShowSignInModal(true)}
+            className="hidden rounded-md px-3 py-2 text-sm text-muted-foreground transition hover:text-foreground sm:inline"
+          >
             Sign in
           </button>
           <button className="group inline-flex items-center gap-1.5 rounded-md bg-system px-3.5 py-2 text-sm font-medium text-system-foreground shadow-[var(--glow-system)] transition hover:brightness-110">
