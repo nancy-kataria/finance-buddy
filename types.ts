@@ -2,10 +2,6 @@ export type VerdictType = 'BUY' | 'SELL' | 'HOLD';
 
 export type Phase = 'idle' | 'processing' | 'deliberating' | 'verdict';
 
-export interface ChatPageProps {
-  onBack: () => void;
-}
-
 export interface ChatPageSearchResultMetadata {
   title?: string;
   domain?: string;
