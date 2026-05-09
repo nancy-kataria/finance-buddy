@@ -5,6 +5,18 @@ import { tavilySearch } from "@tavily/ai-sdk";
 import { findRelevantFinance } from "@/lib/search";
 import { createClient } from "@/lib/supabase/server";
 
+const AnalystSchema = z.object({
+  points: z.array(
+    z.object({
+      tag: z.string().describe("Short 2-3 word risk or growth tag"),
+      content: z.string().describe("The full argument point"),
+      sourceIndex: z
+        .number()
+        .describe("The index of the source from context that supports this"),
+    }),
+  ),
+});
+
 /**
  * Handles chat requests by gathering finance context via tool-calling,
  * generating bull and bear analyses, and returning a structured verdict.
@@ -54,12 +66,14 @@ export async function POST(req: Request) {
     const [bull, bear] = await Promise.all([
       generateText({
         model: openai("gpt-4o-mini"),
+        output: Output.object({ schema: AnalystSchema }),
         system:
           "You are a BULL analyst. Use the context to argue why this is a BUY. Use the specific revenue numbers and dates from the provided sources. Do not give general advice.",
         prompt: `Context: ${context}\n\nQuestion: ${lastMessage}`,
       }),
       generateText({
         model: openai("gpt-4o-mini"),
+        output: Output.object({ schema: AnalystSchema }),
         system:
           "You are a BEAR analyst. Use the context to argue why this is a SELL/AVOID. Use the specific revenue numbers and dates from the provided sources. Do not give general advice.",
         prompt: `Context: ${context}\n\nQuestion: ${lastMessage}`,
@@ -79,7 +93,9 @@ export async function POST(req: Request) {
       }),
       system:
         "You are the Judge. Compare the Bull and Bear arguments and give a final verdict.",
-      prompt: `Bull: ${bull.text}\n\nBear: ${bear.text}\n\nOriginal Context: ${context}`,
+      prompt: `Bull Arguments: ${JSON.stringify(bull.output.points)}
+         Bear Arguments: ${JSON.stringify(bear.output.points)}
+         Original Context: ${context}`,
     });
 
     const sources = researchResult.steps
@@ -91,8 +107,8 @@ export async function POST(req: Request) {
       .filter(Boolean);
 
     return Response.json({
-      bull: bull.text,
-      bear: bear.text,
+      bull: bull.output,
+      bear: bear.output,
       decision: verdict.output,
       sources: sources,
     });
