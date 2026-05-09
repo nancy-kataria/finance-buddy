@@ -1,13 +1,14 @@
 "use client"
 
 import { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Scale, ArrowLeft, Send, Mic, RotateCcw, Gavel } from 'lucide-react';
 import BullBearPodium from '@/components/BullBearPodium';
 import ProcessingSteps from '@/components/ProcessingSteps';
 import DisplayVerdictCard from '@/components/DisplayVerdictCard';
 import ExhibitHall from '@/components/ExhibitHall';
-import type { Argument, ChatAnalystPoint, ChatApiResponse, ChatPageProps, ChatPageSearchResult, Phase, ProcessingStep, Source, VerdictData } from '@/types';
+import type { Argument, ChatAnalystPoint, ChatApiResponse, ChatPageSearchResult, Phase, ProcessingStep, Source, VerdictData } from '@/types';
 
 const STEPS_SEQUENCE: { delay: number; id: string; label: string }[] = [
   { delay: 400, id: 'p1', label: 'Summoning Analysts...' },
@@ -74,7 +75,7 @@ const buildVerdictData = (
   };
 };
 
-export default function JuryRoomPage({ onBack }: ChatPageProps) {
+export default function JuryRoomPage() {
   const router = useRouter();
   const [input, setInput] = useState('');
   const [phase, setPhase] = useState<Phase>('idle');
@@ -240,8 +241,8 @@ export default function JuryRoomPage({ onBack }: ChatPageProps) {
       <header className="flex items-center justify-between px-6 py-4 border-b border-neutral-border bg-navy-900/80 backdrop-blur-md sticky top-0 z-40">
         <div className="flex items-center gap-4">
           <button
-            onClick={onBack}
-            className="flex items-center gap-1.5 text-neutral-muted hover:text-neutral-white transition-colors text-sm"
+            onClick={() => router.push('/')}
+            className="flex items-center gap-1.5 text-neutral-muted hover:text-neutral-white transition-colors text-sm cursor-pointer"
           >
             <ArrowLeft size={15} />
             Back
@@ -251,7 +252,9 @@ export default function JuryRoomPage({ onBack }: ChatPageProps) {
             <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-electric-dim border border-electric/30">
               <Scale size={13} className="text-electric" />
             </div>
-            <span className="font-mono font-bold text-sm text-neutral-white">JuryMind</span>
+            <Link href="/" className="font-mono font-bold text-sm text-neutral-white hover:text-electric transition-colors">
+              JuryMind
+            </Link>
           </div>
         </div>
         <div className="flex items-center gap-2">
