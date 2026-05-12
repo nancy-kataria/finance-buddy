@@ -228,6 +228,15 @@ export default function JuryRoomPage() {
 
   useEffect(() => () => clearTimers(), []);
 
+  useEffect(() => {
+    if (phase === 'verdict' && verdict) {
+      const clearTimer = setTimeout(() => {
+        setInput('');
+      }, 500);
+      return () => clearTimeout(clearTimer);
+    }
+  }, [phase, verdict]);
+
   const autoResize = () => {
     const el = textareaRef.current;
     if (el) {
