@@ -205,9 +205,6 @@ describe('findRelevantFinance', () => {
   });
 
   it('should format embedding as pgvector string correctly', async () => {
-    /**
-     * Creating a specific, small embedding to verify formatting
-     */
     const mockEmbedding = [0.1, 0.2, 0.3];
     vi.mocked(embed).mockResolvedValue({
       embedding: mockEmbedding,
