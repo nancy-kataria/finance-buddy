@@ -3,11 +3,13 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Scale, ArrowLeft, Send, Mic, RotateCcw, Gavel } from 'lucide-react';
+import { Scale, ArrowLeft, Send, Mic, RotateCcw, Gavel, LogOut } from 'lucide-react';
 import BullBearPodium from '@/components/BullBearPodium';
 import ProcessingSteps from '@/components/ProcessingSteps';
 import DisplayVerdictCard from '@/components/DisplayVerdictCard';
 import ExhibitHall from '@/components/ExhibitHall';
+import { useProtected } from '@/lib/use-protected';
+import { signOut } from '@/app/auth/actions';
 import type { Argument, ChatAnalystPoint, ChatApiResponse, ChatPageSearchResult, Phase, ProcessingStep, Source, VerdictData } from '@/types';
 
 const STEPS_SEQUENCE: { delay: number; id: string; label: string }[] = [
@@ -77,6 +79,7 @@ const buildVerdictData = (
 
 export default function JuryRoomPage() {
   const router = useRouter();
+  const { isLoading, isAuthenticated } = useProtected();
   const [input, setInput] = useState('');
   const [phase, setPhase] = useState<Phase>('idle');
   const [steps, setSteps] = useState<ProcessingStep[]>([]);
@@ -245,16 +248,28 @@ export default function JuryRoomPage() {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-navy-950 flex items-center justify-center">
+        <div className="text-neutral-muted">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-navy-950 flex flex-col">
       <header className="flex items-center justify-between px-6 py-4 border-b border-neutral-border bg-navy-900/80 backdrop-blur-md sticky top-0 z-40">
         <div className="flex items-center gap-4">
           <button
-            onClick={() => router.push('/')}
+            onClick={() => signOut()}
             className="flex items-center gap-1.5 text-neutral-muted hover:text-neutral-white transition-colors text-sm cursor-pointer"
           >
-            <ArrowLeft size={15} />
-            Back
+            <LogOut size={15} />
+            Sign Out
           </button>
           <div className="w-px h-5 bg-neutral-border" />
           <div className="flex items-center gap-2">

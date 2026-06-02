@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft,
   FolderOpen,
   Pencil,
   Plus,
@@ -12,6 +11,7 @@ import {
   FileText,
   GraduationCap,
   ArrowRight,
+  LogOut,
 } from "lucide-react";
 import {
   useTradingNotes,
@@ -23,10 +23,13 @@ import {
 } from "@/lib/mock_notes";
 import { NoteEditorModal } from "@/components/NoteEditorModal";
 import Link from "next/link";
+import { useProtected } from "@/lib/use-protected";
+import { signOut } from "@/app/auth/actions";
 
 export default function TradingNotesPage() {
   const { folders, addNote, updateNote, deleteNote, deleteFolder, addFolder } =
     useTradingNotes();
+  const { isLoading, isAuthenticated } = useProtected();
   const [selected, setSelected] = useState<string>(
     folders[0]?.ticker ?? "NVDA",
   );
@@ -98,6 +101,18 @@ export default function TradingNotesPage() {
     setShowTickerInput(false);
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
+        <div className="text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-40 border-b border-border/60 bg-background/70 backdrop-blur-xl">
@@ -110,12 +125,12 @@ export default function TradingNotesPage() {
               JuryMind
             </span>
           </Link>
-          <Link
-            href="/"
+          <button
+            onClick={() => signOut()}
             className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm text-muted-foreground transition hover:text-foreground"
           >
-            <ArrowLeft className="h-3.5 w-3.5" /> Back to Chambers
-          </Link>
+            <LogOut className="h-3.5 w-3.5" /> Sign Out
+          </button>
         </div>
       </header>
 

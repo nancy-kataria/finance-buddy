@@ -48,11 +48,13 @@ export async function proxy(request: NextRequest) {
   // Protection Logic
   const isProtectedPath = 
     request.nextUrl.pathname.startsWith('/chat') || 
+    request.nextUrl.pathname.startsWith('/trading-agent') ||
+    request.nextUrl.pathname.startsWith('/notes') ||
     request.nextUrl.pathname.startsWith('/ingest');
 
   if (!user && isProtectedPath) {
     const url = request.nextUrl.clone()
-    url.pathname = '/login'
+    url.pathname = '/'
     return NextResponse.redirect(url)
   }
 

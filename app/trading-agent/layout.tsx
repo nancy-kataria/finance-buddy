@@ -3,12 +3,15 @@
 import { useEffect, useMemo } from "react";
 import { useRouter, usePathname, useParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { ArrowLeft, MessageSquarePlus, Scale, Trash2, MessageSquare } from "lucide-react";
+import { ArrowLeft, MessageSquarePlus, Scale, Trash2, MessageSquare, LogOut } from "lucide-react";
 import { useThreads } from "@/lib/chat_store";
 import Link from "next/link";
+import { useProtected } from "@/lib/use-protected";
+import { signOut } from "@/app/auth/actions";
 
 export default function TradingAgentLayout({ children }: { children: React.ReactNode }) {
   const { threads, ready, createThread, deleteThread } = useThreads();
+  const { isLoading, isAuthenticated } = useProtected();
   const router = useRouter();
   const pathname = usePathname();
   const params = useParams() as { threadId?: string };
@@ -46,6 +49,18 @@ export default function TradingAgentLayout({ children }: { children: React.React
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
+
   return (
     <div className="flex h-screen flex-col bg-background text-foreground">
       <header className="border-b border-border/60 bg-background/70 backdrop-blur-xl">
@@ -59,12 +74,12 @@ export default function TradingAgentLayout({ children }: { children: React.React
               Trading Agent
             </span>
           </Link>
-          <Link
-            href="/trading-notes"
+          <button
+            onClick={() => signOut()}
             className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm text-muted-foreground transition hover:text-foreground"
           >
-            <ArrowLeft className="h-3.5 w-3.5" /> Back to Notes
-          </Link>
+            <LogOut className="h-3.5 w-3.5" /> Sign Out
+          </button>
         </div>
       </header>
 
