@@ -142,3 +142,13 @@ export interface ProcessingStep {
   label: string;
   status: 'pending' | 'running' | 'done';
 }
+
+export interface TickerItem {
+  sym: string;
+  chg: string;
+  up: boolean;
+}
+export interface ActiveTradedItem {
+  ticker: string;
+  change_percentage: string;
+}
