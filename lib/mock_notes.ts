@@ -159,7 +159,21 @@ export function useTradingNotes() {
     );
   }, []);
 
-  return { folders, addNote, updateNote, deleteNote };
+  const deleteFolder = useCallback((ticker: string) => {
+    updateAndSave((prev) => prev.filter((f) => f.ticker !== ticker));
+  }, []);
+
+  const addFolder = useCallback((ticker: string) => {
+    updateAndSave((prev) => {
+      // Check if ticker already exists
+      if (prev.some((f) => f.ticker === ticker)) {
+        return prev;
+      }
+      return [{ ticker: ticker.toUpperCase(), notes: [] }, ...prev];
+    });
+  }, []);
+
+  return { folders, addNote, updateNote, deleteNote, deleteFolder, addFolder };
 }
 
 export function lastEdited(folder: Folder): number {
