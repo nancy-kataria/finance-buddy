@@ -38,6 +38,10 @@ export async function POST(req: Request) {
     const { messages } = await req.json();
     const lastMessage = messages[messages.length - 1].content;
 
+    // Extract the ticker
+    const tickerMatch = lastMessage.match(/\$([A-Z]{1,5})\b/);
+    const activeTicker = tickerMatch ? tickerMatch[1].toUpperCase() : null;
+
     // to gather context (Local RAG + Tavily Web Search)
     const researchResult = await generateText({
       model: openai("gpt-4o"),
@@ -50,7 +54,11 @@ export async function POST(req: Request) {
             "Search internal database for historical financial insights.",
           inputSchema: z.object({ query: z.string() }),
           execute: async ({ query }) => {
-            const results = await findRelevantFinance(query, user.id);
+            const results = await findRelevantFinance(
+              query,
+              user.id,
+              activeTicker,
+            );
             return JSON.stringify(results);
           },
         },
@@ -62,21 +70,29 @@ export async function POST(req: Request) {
     });
     const context = researchResult.text;
 
+    const sources = researchResult.steps
+      .flatMap((step) => step.toolResults.map((tr) => tr.output))
+      .filter(Boolean);
+
+    const indexedSourcesForAI = sources
+      .map((s, i) => `[Source ${i}]: ${JSON.stringify(s)}`)
+      .join("\n");
+
     // parallel debate (Bull vs Bear)
     const [bull, bear] = await Promise.all([
       generateText({
         model: openai("gpt-4o-mini"),
         output: Output.object({ schema: AnalystSchema }),
-        system:
-          "You are a BULL analyst. Use the context to argue why this is a BUY. Use the specific revenue numbers and dates from the provided sources. Do not give general advice.",
-        prompt: `Context: ${context}\n\nQuestion: ${lastMessage}`,
+        system: `You are a BULL analyst. Argue why this is a BUY. 
+             For every point, you MUST provide the 'sourceIndex' that matches the source list provided.`,
+        prompt: `Sources:\n${indexedSourcesForAI}\n\nQuestion: ${lastMessage}`,
       }),
       generateText({
         model: openai("gpt-4o-mini"),
         output: Output.object({ schema: AnalystSchema }),
-        system:
-          "You are a BEAR analyst. Use the context to argue why this is a SELL/AVOID. Use the specific revenue numbers and dates from the provided sources. Do not give general advice.",
-        prompt: `Context: ${context}\n\nQuestion: ${lastMessage}`,
+        system: `You are a BULL analyst. Argue why this is a SELL/AVOID.
+             For every point, you MUST provide the 'sourceIndex' that matches the source list provided.`,
+        prompt: `Sources:\n${indexedSourcesForAI}\n\nQuestion: ${lastMessage}`
       }),
     ]);
 
@@ -97,14 +113,6 @@ export async function POST(req: Request) {
          Bear Arguments: ${JSON.stringify(bear.output.points)}
          Original Context: ${context}`,
     });
-
-    const sources = researchResult.steps
-      .flatMap((step) =>
-        step.toolResults.map((toolResult) => {
-          return toolResult.output;
-        }),
-      )
-      .filter(Boolean);
 
     return Response.json({
       bull: bull.output,
