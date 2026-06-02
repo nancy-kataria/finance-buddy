@@ -8,13 +8,12 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(uuid())
-  email         String    @unique
-  name          String?
-  debates       Debate[]
-  tickers       Ticker[]
-  savedInsights FinancialInsight[]
-  createdAt     DateTime  @default(now())
+  id        String    @id @default(uuid())
+  email     String    @unique
+  name      String?
+  debates   Debate[]
+  tickers   Ticker[]
+  createdAt DateTime  @default(now())
 }
 
 model Ticker {
@@ -57,13 +56,4 @@ model Debate {
   createdAt    DateTime @default(now())
 
   @@index([userId, ticker])
-}
-
-model FinancialInsight {
-  id        String   @id @default(uuid())
-  content   String
-  metadata  Json?
-  userId    String
-  user      User  @relation(fields: [userId], references: [id])
-  createdAt DateTime @default(now())
 }

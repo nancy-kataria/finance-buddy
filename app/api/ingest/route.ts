@@ -1,6 +1,4 @@
 import { NextResponse } from "next/server";
-import { openai } from "@ai-sdk/openai";
-import { embed } from "ai";
 import { prisma } from "@/prisma/prisma";
 import { createClient } from "@/lib/supabase/server";
 
@@ -27,27 +25,29 @@ export async function POST(req: Request) {
       );
     }
 
-    // Generating the embeddings
-    const { embedding } = await embed({
-      model: openai.embedding("text-embedding-3-small"),
-      value: `Ticker: ${ticker} - ${content}`,
+    // Find or create the ticker for this user
+    const tickerRecord = await prisma.ticker.upsert({
+      where: {
+        userId_symbol: {
+          userId: user.id,
+          symbol: ticker.toUpperCase(),
+        },
+      },
+      update: {},
+      create: {
+        symbol: ticker.toUpperCase(),
+        userId: user.id,
+      },
     });
 
-    const vectorString = `[${embedding.join(",")}]`;
-
-    // using Prisma to save the text and metadata
-    // raw SQL for pgvector
-    await prisma.$executeRaw`
-    INSERT INTO "FinancialInsight" (id, content, metadata, embedding, "userId", "ticker")
-      VALUES (
-        gen_random_uuid(), 
-        ${content}, 
-        ${JSON.stringify({ ...metadata, ticker })}::jsonb, 
-        ${vectorString}::vector,
-        ${user.id},
-        ${ticker.toUpperCase()} 
-      )
-    `;
+    // Save the trading note
+    await prisma.tradingNote.create({
+      data: {
+        content,
+        userId: user.id,
+        tickerId: tickerRecord.id,
+      },
+    });
 
     return NextResponse.json({
       success: true,

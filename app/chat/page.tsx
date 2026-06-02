@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Scale, ArrowLeft, Send, Mic, RotateCcw, Gavel, LogOut } from 'lucide-react';
+import { Scale, Send, Mic, RotateCcw, Gavel, LogOut } from 'lucide-react';
 import BullBearPodium from '@/components/BullBearPodium';
 import ProcessingSteps from '@/components/ProcessingSteps';
 import DisplayVerdictCard from '@/components/DisplayVerdictCard';

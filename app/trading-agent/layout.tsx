@@ -3,7 +3,7 @@
 import { useEffect, useMemo } from "react";
 import { useRouter, usePathname, useParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { ArrowLeft, MessageSquarePlus, Scale, Trash2, MessageSquare, LogOut } from "lucide-react";
+import { MessageSquarePlus, Scale, Trash2, MessageSquare, LogOut } from "lucide-react";
 import { useThreads } from "@/lib/chat_store";
 import Link from "next/link";
 import { useProtected } from "@/lib/use-protected";
