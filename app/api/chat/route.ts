@@ -4,6 +4,7 @@ import { z } from "zod";
 import { tavilySearch } from "@tavily/ai-sdk";
 import { findRelevantFinance } from "@/lib/search";
 import { createClient } from "@/lib/supabase/server";
+import { prisma } from "@/prisma/prisma";
 
 const AnalystSchema = z.object({
   points: z.array(
@@ -92,7 +93,7 @@ export async function POST(req: Request) {
         output: Output.object({ schema: AnalystSchema }),
         system: `You are a BULL analyst. Argue why this is a SELL/AVOID.
              For every point, you MUST provide the 'sourceIndex' that matches the source list provided.`,
-        prompt: `Sources:\n${indexedSourcesForAI}\n\nQuestion: ${lastMessage}`
+        prompt: `Sources:\n${indexedSourcesForAI}\n\nQuestion: ${lastMessage}`,
       }),
     ]);
 
@@ -114,7 +115,21 @@ export async function POST(req: Request) {
          Original Context: ${context}`,
     });
 
+    const ticker = activeTicker || "GENERAL";
+
+    const savedDebate = await prisma.debate.create({
+      data: {
+        userId: user.id,
+        ticker: ticker,
+        userQuery: lastMessage,
+        bullResponse: JSON.stringify(bull.output),
+        bearResponse: JSON.stringify(bear.output),
+        judgeVerdict: JSON.stringify(verdict.output),
+      },
+    });
+
     return Response.json({
+      id: savedDebate.id, // Return the ID so the frontend can reference it
       bull: bull.output,
       bear: bear.output,
       decision: verdict.output,
