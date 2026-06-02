@@ -12,19 +12,22 @@ model User {
   email         String    @unique
   name          String?
   debates       Debate[]
-  savedInsights FinancialInsight[] // Link RAG data to specific users
+  savedInsights FinancialInsight[]
   createdAt     DateTime  @default(now())
 }
 
 model Debate {
   id           String   @id @default(cuid())
   userId       String
+  ticker       String   
   userQuery    String
-  bullResponse String   @db.Text
-  bearResponse String   @db.Text
-  judgeVerdict String   @db.Text
+  bullResponse Json     
+  bearResponse Json     
+  judgeVerdict Json     
   createdAt    DateTime @default(now())
   user         User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, ticker])
 }
 
 model FinancialInsight {
@@ -34,4 +37,15 @@ model FinancialInsight {
   userId    String
   user      User  @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())
+}
+
+model TradingNote {
+  id        String   @id @default(cuid())
+  userId    String   
+  ticker    String   @db.VarChar(10)
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, ticker]) 
 }
