@@ -17,11 +17,11 @@ export default function TradingAgentLayout({ children }: { children: React.React
   const params = useParams() as { threadId?: string };
   const activeId = params.threadId as string | undefined;
 
-  // Bootstrap: if at /trading-agent and we have threads, route into the first one.
+  // Bootstrap: if at /trading-assistant and we have threads, route into the first one.
   useEffect(() => {
     if (!ready) return;
-    if (pathname === "/trading-agent" && threads[0]) {
-      router.push(`/trading-agent/${threads[0].id}`);
+    if (pathname === "/trading-assistant" && threads[0]) {
+      router.push(`/trading-assistant/${threads[0].id}`);
     }
   }, [ready, pathname, threads, router]);
 
@@ -32,7 +32,7 @@ export default function TradingAgentLayout({ children }: { children: React.React
 
   const handleNew = () => {
     const id = createThread();
-    router.push(`/trading-agent/${id}`);
+    router.push(`/trading-assistant/${id}`);
   };
 
   const handleDelete = (id: string) => {
@@ -42,9 +42,9 @@ export default function TradingAgentLayout({ children }: { children: React.React
       const remaining = threads.filter((t) => t.id !== id);
       const target = remaining[0]?.id;
       if (target) {
-        router.push(`/trading-agent/${target}`);
+        router.push(`/trading-assistant/${target}`);
       } else {
-        router.push("/trading-agent");
+        router.push("/trading-assistant");
       }
     }
   };
@@ -71,7 +71,7 @@ export default function TradingAgentLayout({ children }: { children: React.React
             </div>
             <span className="font-mono text-sm font-semibold tracking-wide">Bull v. Bear</span>
             <span className="ml-2 hidden rounded-md border border-border bg-surface px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-muted-foreground sm:inline">
-              Trading Agent
+              Trading Assistant
             </span>
           </Link>
           <button
@@ -114,7 +114,7 @@ export default function TradingAgentLayout({ children }: { children: React.React
                       style={active ? { boxShadow: "var(--glow-system)" } : undefined}
                     >
                       <Link
-                        href={`/trading-agent/${t.id}`}
+                        href={`/trading-assistant/${t.id}`}
                         className="flex min-w-0 flex-1 items-center gap-2"
                       >
                         <MessageSquare

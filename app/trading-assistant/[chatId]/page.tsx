@@ -91,7 +91,7 @@ export default function ThreadView() {
         <div className="mx-auto flex max-w-3xl items-start gap-2.5 text-xs text-judge">
           <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           <p className="leading-relaxed">
-            This is not investment advice. The trading agent is here to help you learn the
+            This is not investment advice. The trading assistant is here to help you learn the
             principles of disciplined trading — every decision and its consequences remain
             entirely your own.
           </p>
@@ -126,7 +126,7 @@ export default function ThreadView() {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={onKeyDown}
               rows={1}
-              placeholder="Ask the trading agent anything…"
+              placeholder="Ask the trading assistant anything…"
               className="block max-h-[200px] w-full resize-none bg-transparent px-4 py-3 pr-14 text-sm outline-none placeholder:text-muted-foreground"
             />
             <button

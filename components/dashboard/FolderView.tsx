@@ -38,7 +38,7 @@ export function FolderView({
   return (
     <section>
       <Link
-        href="/trading-agent"
+        href="/trading-assistant"
         className="group mb-5 flex items-center justify-between gap-4 rounded-2xl border border-judge/40 bg-gradient-to-r from-judge/10 via-judge/5 to-transparent p-4 transition hover:border-judge/70"
       >
         <div className="flex items-center gap-3">
@@ -47,7 +47,7 @@ export function FolderView({
           </div>
           <div>
             <p className="text-sm font-semibold text-foreground">
-              New to trading? Learn from our trading agent.
+              New to trading? Learn from our trading assistant.
             </p>
             <p className="text-xs text-muted-foreground">
               Ask anything — from position sizing to reading earnings.
