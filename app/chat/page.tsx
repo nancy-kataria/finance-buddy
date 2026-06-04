@@ -277,7 +277,7 @@ export default function JuryRoomPage() {
               <Scale size={13} className="text-electric" />
             </div>
             <Link href="/" className="font-mono font-bold text-sm text-neutral-white hover:text-electric transition-colors">
-              JuryMind
+              Bull v. Bear
             </Link>
           </div>
         </div>

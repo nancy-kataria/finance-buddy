@@ -69,7 +69,7 @@ export default function TradingAgentLayout({ children }: { children: React.React
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-system/15 ring-1 ring-system/40">
               <Scale className="h-4 w-4 text-system" />
             </div>
-            <span className="font-mono text-sm font-semibold tracking-wide">JuryMind</span>
+            <span className="font-mono text-sm font-semibold tracking-wide">Bull v. Bear</span>
             <span className="ml-2 hidden rounded-md border border-border bg-surface px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-muted-foreground sm:inline">
               Trading Agent
             </span>

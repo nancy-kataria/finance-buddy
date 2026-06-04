@@ -8,18 +8,14 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "JuryMind — Don't just trade. Deliberate.",
+  title: "Bull v. Bear",
   description: "Multi-agent financial jury that debates your investments before you make them.",
-  authors: [{ name: "JuryMind" }],
+  authors: [{ name: "Bull v. Bear" }],
   openGraph: {
-    title: "JuryMind — Don't just trade. Deliberate.",
+    title: "Bull v. Bear.",
     description: "Multi-agent financial jury that debates your investments before you make them.",
     type: "website",
-  },
-  twitter: {
-    card: "summary",
-    site: "@Lovable",
-  },
+  }
 };
 
 export default function RootLayout({
