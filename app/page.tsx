@@ -27,7 +27,7 @@ export default function Index() {
       <Hero />
       <TickerTape />
       <HowItWorks />
-      <Manifesto />
+      <Manifesto setShowSignUpModal={setShowSignUpModal} />
       <Footer />
       <SignInModal isOpen={showSignInModal} onClose={() => setShowSignInModal(false)} />
       <SignUpModal isOpen={showSignUpModal} onClose={() => setShowSignUpModal(false)} />
@@ -61,30 +61,21 @@ function Nav({ setShowSignInModal, setShowSignUpModal }: NavProps) {
           <a className="transition hover:text-foreground" href="#manifesto">
             Manifesto
           </a>
-          <a className="transition hover:text-foreground" href="#">
-            Docs
-          </a>
         </nav>
         <div className="flex items-center gap-2">
-          <button 
-            onClick={() => setShowSignInModal(true)}
-            className="hidden rounded-md px-3 py-2 text-sm text-muted-foreground transition hover:text-foreground sm:inline"
-          >
-            Sign in
-          </button>
           <button 
             onClick={() => setShowSignUpModal(true)}
             className="hidden rounded-md px-3.5 py-2 text-sm font-medium border border-system text-system transition hover:bg-system/10 sm:inline"
           >
             Sign up
           </button>
-          <Link 
-            href="/chat"
+          <button 
+            onClick={() => setShowSignInModal(true)}
             className="group inline-flex items-center gap-1.5 rounded-md bg-system px-3.5 py-2 text-sm font-medium text-system-foreground shadow-[var(--glow-system)] transition hover:brightness-110"
           >
-            Enter Chambers
+            Sign in
             <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" />
-          </Link>
+          </button>
         </div>
       </div>
     </header>
@@ -291,7 +282,11 @@ function HowItWorks() {
   );
 }
 
-function Manifesto() {
+interface ManifestoProps {
+  setShowSignUpModal: (value: boolean) => void;
+}
+
+function Manifesto({ setShowSignUpModal }: ManifestoProps) {
   return (
     <section
       id="manifesto"
@@ -321,7 +316,10 @@ function Manifesto() {
         </div>
 
         <div className="mt-8 flex justify-center">
-          <button className="group inline-flex items-center gap-2 rounded-lg bg-system px-5 py-3 text-sm font-semibold text-system-foreground shadow-[var(--glow-system)] transition hover:brightness-110">
+          <button 
+            onClick={() => setShowSignUpModal(true)}
+            className="group inline-flex items-center gap-2 rounded-lg bg-system px-5 py-3 text-sm font-semibold text-system-foreground shadow-[var(--glow-system)] transition hover:brightness-110"
+          >
             Sign up to access
             <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
           </button>
