@@ -1,28 +1,31 @@
 import { prisma } from '@/prisma/prisma';
 
 export async function findRelevantFinance(query: string, userId?: string | null, limit = 3, ticker?: string | null,) {
-  // Search trading notes by content using case-insensitive pattern matching
-  const searchTerm = `%${query}%`;
-
-  const results = await prisma.tradingNote.findMany({
+  // Search note chunks by content using case-insensitive pattern matching
+  const results = await prisma.noteChunk.findMany({
     where: {
-      AND: [
-        { content: { search: query } }, // Full-text search if supported
-        userId ? { userId } : {},
-        ticker ? { ticker: { symbol: ticker.toUpperCase() } } : {},
-      ],
+      note: {
+        AND: [
+          userId ? { userId } : {},
+          ticker ? { ticker: { symbol: ticker.toUpperCase() } } : {},
+        ],
+      },
     },
     include: {
-      ticker: true,
+      note: {
+        include: {
+          ticker: true,
+        },
+      },
     },
     take: limit,
   });
 
   // Map to match the expected result format
-  return results.map((note) => ({
-    id: note.id,
-    content: note.content,
-    metadata: { ticker: note.ticker.symbol },
-    ticker: note.ticker.symbol,
+  return results.map((chunk) => ({
+    id: chunk.id,
+    content: chunk.chunkContent,
+    metadata: { ticker: chunk.note.ticker.symbol },
+    ticker: chunk.note.ticker.symbol,
   }));
 }
