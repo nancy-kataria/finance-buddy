@@ -1,16 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/prisma/prisma";
 import { createClient } from "@/lib/supabase/server";
+import { openai } from "@ai-sdk/openai";
+import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
+import { embed } from "ai";
 
 export async function POST(req: Request) {
   try {
-    // Initializing Supabase Client to get the user session
     const supabase = await createClient();
-
-    // Identifing the logged-in user
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -25,41 +23,56 @@ export async function POST(req: Request) {
       );
     }
 
-    // Verify the note belongs to the user
-    const note = await prisma.tradingNote.findUnique({
-      where: { id: noteId },
-      include: { ticker: true },
+    // Querying by both id and userId ensures a malicious user can't spoof someone else's noteId
+    const note = await prisma.tradingNote.findFirst({
+      where: { 
+        id: noteId,
+        userId: user.id 
+      },
     });
 
-    if (!note || note.userId !== user.id) {
+    if (!note) {
       return NextResponse.json(
         { error: "Note not found or unauthorized" },
         { status: 404 },
       );
     }
 
-    // Create a note chunk for embeddings/vector storage
-    // Split content into chunks if it's large (e.g., > 1000 chars)
-    const chunkSize = 1000;
-    const chunks = [];
-    
-    for (let i = 0; i < content.length; i += chunkSize) {
-      chunks.push(content.substring(i, i + chunkSize));
-    }
+    const splitter = new RecursiveCharacterTextSplitter({
+      chunkSize: 1000, 
+      chunkOverlap: 200, 
+    });
 
-    // Create note chunks
-    for (const chunkContent of chunks) {
-      await prisma.noteChunk.create({
-        data: {
-          noteId,
-          chunkContent,
-        },
-      });
-    }
+    const chunks = await splitter.splitText(content);
+
+    // Process all vector computations and database insertions concurrently
+    await Promise.all(
+      chunks.map(async (chunkContent) => {
+        // Create relational chunk record
+        const chunkRecord = await prisma.noteChunk.create({
+          data: { noteId, chunkContent },
+        });
+
+        // Calculate vector coordinates
+        const { embedding } = await embed({
+          model: openai.embedding("text-embedding-3-small"),
+          value: `Ticker: ${ticker.toUpperCase()} \n\n Content: ${chunkContent}`,
+        });
+
+        const vectorString = `[${embedding.join(",")}]`;
+
+        // Inject coordinates directly into Supabase
+        await prisma.$executeRaw`
+          UPDATE "NoteChunk"
+          SET "embedding" = ${vectorString}::vector
+          WHERE id = ${chunkRecord.id}
+        `;
+      })
+    );
 
     return NextResponse.json({
       success: true,
-      message: "Data ingested successfully",
+      message: "Data and vectors ingested successfully",
       chunksCreated: chunks.length,
     });
   } catch (error) {
