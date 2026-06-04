@@ -49,7 +49,7 @@ export async function proxy(request: NextRequest) {
   const isProtectedPath = 
     request.nextUrl.pathname.startsWith('/chat') || 
     request.nextUrl.pathname.startsWith('/trading-agent') ||
-    request.nextUrl.pathname.startsWith('/notes') ||
+    request.nextUrl.pathname.startsWith('/dashboard') ||
     request.nextUrl.pathname.startsWith('/ingest');
 
   if (!user && isProtectedPath) {
