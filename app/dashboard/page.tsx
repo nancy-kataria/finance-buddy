@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useTradingNotes, type Note } from "@/lib/mock_notes";
+import { useMemo, useState, useCallback } from "react";
+import type { Note } from "@/lib/mock_notes";
 import { NoteEditorModal } from "@/components/NoteEditorModal";
 import { useProtected } from "@/lib/use-protected";
 import { Header } from "@/components/dashboard/Header";
@@ -9,80 +9,159 @@ import { FolderSidebar } from "@/components/dashboard/FolderSidebar";
 import { FolderView } from "@/components/dashboard/FolderView";
 import { TickerInputModal } from "@/components/dashboard/TickerInputModal";
 import { EmptyState } from "@/components/dashboard/EmptyState";
+import {
+  useTradingNotesAPI,
+  useTickersAPI,
+  useIngestAPI,
+  useFetchTickersAPI,
+} from "@/lib/hooks";
+import type { TradingNote } from "@/types";
+
+interface Folder {
+  ticker: string;
+  notes: (Note & { dbId?: string })[];
+}
 
 export default function TradingNotesPage() {
-  const { folders, addNote, updateNote, deleteNote, deleteFolder, addFolder } =
-    useTradingNotes();
-  const { isLoading, isAuthenticated } = useProtected();
+  const { isLoading: authLoading, isAuthenticated } = useProtected();
+  const { tickers, isLoading: tickersLoading, refetch: refetchTickers } =
+    useFetchTickersAPI();
+  const { createNote, updateNote: updateNoteAPI, deleteNote: deleteNoteAPI } =
+    useTradingNotesAPI();
+  const { createTicker, deleteTicker } = useTickersAPI();
+  const { ingestNote } = useIngestAPI();
 
-  const [selected, setSelected] = useState<string>(
-    folders[0]?.ticker ?? "NVDA",
-  );
+  const [userSelectedTicker, setUserSelectedTicker] = useState<string | null>(null);
   const [editor, setEditor] = useState<
     | { open: false }
     | { open: true; mode: "add" }
-    | { open: true; mode: "edit"; note: Note }
+    | { open: true; mode: "edit"; note: Note & { dbId?: string } }
   >({ open: false });
   const [showTickerInput, setShowTickerInput] = useState(false);
   const [tickerInput, setTickerInput] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Transform API data to folder format
+  const folders: Folder[] = useMemo(() => {
+    return tickers.map((ticker) => ({
+      ticker: ticker.symbol,
+      notes: (ticker.notes || []).map((note: TradingNote) => ({
+        id: note.id,
+        body: note.content,
+        dbId: note.id,
+        createdAt:
+          typeof note.createdAt === "string"
+            ? new Date(note.createdAt).getTime()
+            : (note.createdAt as unknown as number),
+        updatedAt:
+          typeof note.updatedAt === "string"
+            ? new Date(note.updatedAt).getTime()
+            : (note.updatedAt as unknown as number),
+      })),
+    }));
+  }, [tickers]);
+
+  // Set initial selected ticker
+  const selected = userSelectedTicker || (folders.length > 0 ? folders[0].ticker : "");
 
   const folder = useMemo(
     () => folders.find((f) => f.ticker === selected) ?? folders[0],
     [folders, selected],
   );
 
-  const handleSaveAndIngest = async (body: string) => {
-    if (!folder) return;
+  const handleSaveAndIngest = useCallback(
+    async (body: string) => {
+      if (!folder) return;
+      setIsSaving(true);
 
-    // Save locally first
-    if (editor.open && editor.mode === "edit") {
-      updateNote(folder.ticker, editor.note.id, body);
-    } else {
-      addNote(folder.ticker, body);
-    }
+      try {
+        let noteId: string;
 
-    // Then ingest to database for search
-    try {
-      await fetch("/api/ingest", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          content: body,
-          ticker: folder.ticker,
-          metadata: {
-            timestamp: new Date().toISOString(),
-            mode: editor.open && editor.mode === "edit" ? "edit" : "add",
-          },
-        }),
-      });
-    } catch (error) {
-      console.error("Failed to ingest note:", error);
-    } finally {
-      setEditor({ open: false });
-    }
-  };
+        // Create or update note in database
+        if (editor.open && editor.mode === "edit" && editor.note.dbId) {
+          // Update existing note
+          const updatedNote = await updateNoteAPI(editor.note.dbId, body);
+          noteId = updatedNote.id;
+        } else {
+          // Create new note
+          const newNote = await createNote(folder.ticker, body);
+          noteId = newNote.id;
+        }
 
-  const handleDeleteFolder = (ticker: string) => {
-    deleteFolder(ticker);
-    const remaining = folders.filter((f) => f.ticker !== ticker);
-    if (remaining.length > 0) {
-      setSelected(remaining[0].ticker);
-    } else {
-      setSelected("");
-    }
-  };
+        // Ingest content and create chunks
+        await ingestNote(body, folder.ticker, noteId);
 
-  const handleAddTicker = () => {
+        // Refetch data to sync with database
+        await refetchTickers();
+
+        setEditor({ open: false });
+      } catch (error) {
+        console.error("Failed to save and ingest note:", error);
+        alert("Failed to save note. Please try again.");
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [editor, folder, createNote, updateNoteAPI, ingestNote, refetchTickers],
+  );
+
+  const handleDeleteNote = useCallback(
+    async (tickerSymbol: string, noteId: string, dbId?: string) => {
+      if (!dbId) {
+        // Local only note - shouldn't happen with real DB
+        return;
+      }
+
+      try {
+        await deleteNoteAPI(dbId);
+        // Refetch to sync with database
+        await refetchTickers();
+      } catch (error) {
+        console.error("Failed to delete note:", error);
+        alert("Failed to delete note. Please try again.");
+      }
+    },
+    [deleteNoteAPI, refetchTickers],
+  );
+
+  const handleDeleteFolder = useCallback(
+    async (ticker: string) => {
+      try {
+        await deleteTicker(ticker);
+        // Refetch to sync with database
+        await refetchTickers();
+        setUserSelectedTicker(null);
+      } catch (error) {
+        console.error("Failed to delete ticker:", error);
+        alert("Failed to delete ticker. Please try again.");
+      }
+    },
+    [deleteTicker, refetchTickers],
+  );
+
+  const handleAddTicker = useCallback(async () => {
     const newTicker = tickerInput.trim().toUpperCase();
     if (!newTicker) return;
 
-    addFolder(newTicker);
-    setSelected(newTicker);
-    setTickerInput("");
-    setShowTickerInput(false);
-  };
+    setIsSaving(true);
+    try {
+      // Create ticker in database
+      await createTicker(newTicker);
 
-  if (isLoading) {
+      // Refetch to sync with database
+      await refetchTickers();
+      setUserSelectedTicker(newTicker);
+      setTickerInput("");
+      setShowTickerInput(false);
+    } catch (error) {
+      console.error("Failed to add ticker:", error);
+      alert("Failed to add ticker. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
+  }, [tickerInput, createTicker, refetchTickers]);
+
+  if (authLoading || tickersLoading) {
     return (
       <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
         <div className="text-muted-foreground">Loading...</div>
@@ -102,7 +181,7 @@ export default function TradingNotesPage() {
         <FolderSidebar
           folders={folders}
           selected={selected}
-          onSelect={setSelected}
+          onSelect={setUserSelectedTicker}
           onAddTicker={() => setShowTickerInput(true)}
         />
 
@@ -112,8 +191,23 @@ export default function TradingNotesPage() {
           <FolderView
             folder={folder}
             onAdd={() => setEditor({ open: true, mode: "add" })}
-            onEdit={(note) => setEditor({ open: true, mode: "edit", note })}
-            onDelete={(id) => deleteNote(folder.ticker, id)}
+            onEdit={(note) =>
+              setEditor({
+                open: true,
+                mode: "edit",
+                note: note as Note & { dbId?: string },
+              })
+            }
+            onDelete={(id) => {
+              const note = folder.notes.find((n) => n.id === id);
+              if (note) {
+                handleDeleteNote(
+                  folder.ticker,
+                  id,
+                  (note as Note & { dbId?: string }).dbId,
+                );
+              }
+            }}
             onDeleteFolder={() => handleDeleteFolder(folder.ticker)}
           />
         ) : null}
@@ -126,8 +220,9 @@ export default function TradingNotesPage() {
         initialBody={
           editor.open && editor.mode === "edit" ? editor.note.body : ""
         }
-        onClose={() => setEditor({ open: false })}
+        onClose={() => !isSaving && setEditor({ open: false })}
         onSave={handleSaveAndIngest}
+        isSaving={isSaving}
       />
 
       <TickerInputModal
@@ -135,7 +230,8 @@ export default function TradingNotesPage() {
         value={tickerInput}
         onValueChange={setTickerInput}
         onSubmit={handleAddTicker}
-        onClose={() => setShowTickerInput(false)}
+        onClose={() => !isSaving && setShowTickerInput(false)}
+        isLoading={isSaving}
       />
     </div>
   );

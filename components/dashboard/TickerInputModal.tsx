@@ -4,6 +4,7 @@ interface TickerInputModalProps {
   onValueChange: (value: string) => void;
   onSubmit: () => void;
   onClose: () => void;
+  isLoading?: boolean;
 }
 
 export function TickerInputModal({
@@ -12,6 +13,7 @@ export function TickerInputModal({
   onValueChange,
   onSubmit,
   onClose,
+  isLoading = false,
 }: TickerInputModalProps) {
   if (!isOpen) return null;
 
@@ -30,14 +32,15 @@ export function TickerInputModal({
           value={value}
           onChange={(e) => onValueChange(e.target.value.toUpperCase())}
           onKeyDown={(e) => {
-            if (e.key === "Enter") onSubmit();
+            if (e.key === "Enter" && !isLoading) onSubmit();
             if (e.key === "Escape") {
               onClose();
               onValueChange("");
             }
           }}
+          disabled={isLoading}
           placeholder="Enter ticker symbol"
-          className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-system/50 focus:ring-1 focus:ring-system/40 mb-4"
+          className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-system/50 focus:ring-1 focus:ring-system/40 mb-4 disabled:opacity-50"
         />
         <div className="flex gap-3">
           <button
@@ -45,16 +48,17 @@ export function TickerInputModal({
               onClose();
               onValueChange("");
             }}
-            className="flex-1 rounded-lg border border-border/60 px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition"
+            disabled={isLoading}
+            className="flex-1 rounded-lg border border-border/60 px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
           </button>
           <button
             onClick={onSubmit}
-            disabled={!value.trim()}
+            disabled={!value.trim() || isLoading}
             className="flex-1 rounded-lg bg-system px-4 py-2 text-sm font-medium text-system-foreground hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
-            Add Ticker
+            {isLoading ? "Adding..." : "Add Ticker"}
           </button>
         </div>
       </div>

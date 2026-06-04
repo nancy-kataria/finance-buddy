@@ -9,6 +9,7 @@ type Props = {
   mode: "add" | "edit";
   onClose: () => void;
   onSave: (body: string) => void;
+  isSaving?: boolean;
 };
 
 export function NoteEditorModal({
@@ -18,6 +19,7 @@ export function NoteEditorModal({
   mode,
   onClose,
   onSave,
+  isSaving = false,
 }: Props) {
   const [body, setBody] = useState(initialBody);
   const taRef = useRef<HTMLTextAreaElement>(null);
@@ -100,17 +102,18 @@ export function NoteEditorModal({
               <div className="flex items-center gap-2">
                 <button
                   onClick={onClose}
-                  className="rounded-md px-3 py-1.5 text-sm text-muted-foreground transition hover:text-foreground"
+                  disabled={isSaving}
+                  className="rounded-md px-3 py-1.5 text-sm text-muted-foreground transition hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={() => body.trim() && onSave(body.trim())}
-                  disabled={!body.trim()}
+                  disabled={!body.trim() || isSaving}
                   className="inline-flex items-center gap-1.5 rounded-md bg-system px-3.5 py-1.5 text-sm font-medium text-system-foreground shadow-[var(--glow-system)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Save className="h-3.5 w-3.5" />
-                  {mode === "add" ? "Add note" : "Save changes"}
+                  {isSaving ? "Saving..." : mode === "add" ? "Add note" : "Save changes"}
                 </button>
               </div>
             </div>
