@@ -27,8 +27,8 @@ export function SignInModal({ isOpen, onClose }: SignInModalProps) {
         return
       }
 
-      // Redirect to /chat on successful login
-      router.push('/chat')
+      // Redirect to /dashboard on successful login
+      router.push('/dashboard')
     } catch {
       setError('An unexpected error occurred')
       setLoading(false)
@@ -36,15 +36,7 @@ export function SignInModal({ isOpen, onClose }: SignInModalProps) {
   }
 
   const handleGoogleSignIn = async () => {
-    setError('')
-    setLoading(true)
-
-    try {
-      await signInWithGoogle()
-    } catch {
-      setError('Failed to sign in with Google')
-      setLoading(false)
-    }
+    await signInWithGoogle()
   }
 
   if (!isOpen) return null
