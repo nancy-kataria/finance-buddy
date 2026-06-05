@@ -13,6 +13,7 @@ model User {
   name      String?
   debates   Debate[]
   tickers   Ticker[]
+  assistantChats AssistantChat[]
   createdAt DateTime @default(now())
 }
 
@@ -65,4 +66,16 @@ model Debate {
   createdAt    DateTime @default(now())
 
   @@index([userId, tickerId])
+}
+
+model AssistantChat {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String   
+  messages  Json     
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }
