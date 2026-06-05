@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Scale, Send, Mic, RotateCcw, Gavel, LogOut } from 'lucide-react';
+import { Footer } from '@/components/Footer';
 import BullBearPodium from '@/components/BullBearPodium';
 import ProcessingSteps from '@/components/ProcessingSteps';
 import DisplayVerdictCard from '@/components/DisplayVerdictCard';
@@ -441,6 +442,8 @@ export default function JuryRoomPage() {
           <ExhibitHall sources={phase === 'verdict' && verdict ? verdict.sources : exhibits} />
         </div>
       </div>
+
+      <Footer />
     </div>
   );
 }

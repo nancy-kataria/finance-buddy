@@ -2,13 +2,14 @@
 
 import { useMemo, useState, useCallback } from "react";
 import type { Note } from "@/lib/mock_notes";
-import { NoteEditorModal } from "@/components/NoteEditorModal";
+import { NoteEditorModal } from "@/components/dashboard/NoteEditorModal";
 import { useProtected } from "@/lib/use-protected";
 import { Header } from "@/components/dashboard/Header";
 import { FolderSidebar } from "@/components/dashboard/FolderSidebar";
 import { FolderView } from "@/components/dashboard/FolderView";
 import { TickerInputModal } from "@/components/dashboard/TickerInputModal";
 import { EmptyState } from "@/components/dashboard/EmptyState";
+import { Footer } from "@/components/Footer";
 import {
   useTradingNotesAPI,
   useTickersAPI,
@@ -174,10 +175,10 @@ export default function TradingNotesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen flex flex-col bg-background text-foreground">
       <Header />
 
-      <main className="mx-auto grid max-w-7xl gap-6 px-6 py-8 lg:grid-cols-[320px_1fr]">
+      <main className="flex-1 mx-auto grid max-w-7xl gap-6 px-6 py-8 lg:grid-cols-[320px_1fr]">
         <FolderSidebar
           folders={folders}
           selected={selected}
@@ -233,6 +234,8 @@ export default function TradingNotesPage() {
         onClose={() => !isSaving && setShowTickerInput(false)}
         isLoading={isSaving}
       />
+
+      <Footer />
     </div>
   );
 }

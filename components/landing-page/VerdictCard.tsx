@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { ArrowUpRight, Gavel, TrendingUp, TrendingDown, FileText } from "lucide-react";
-import { ConfidenceGauge } from "./ConfidenceGauge";
+import { ConfidenceGauge } from "@/components/ConfidenceGauge";
 import type { VerdictCardProps, VerdictType } from '@/types';
 
 const verdictTone: Record<VerdictType, { color: string; glow: string; bg: string; label: string }> = {
