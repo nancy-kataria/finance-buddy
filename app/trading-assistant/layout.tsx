@@ -14,8 +14,8 @@ export default function TradingAgentLayout({ children }: { children: React.React
   const { isLoading, isAuthenticated } = useProtected();
   const router = useRouter();
   const pathname = usePathname();
-  const params = useParams() as { threadId?: string };
-  const activeId = params.threadId as string | undefined;
+  const params = useParams() as { chatId?: string };
+  const activeId = params.chatId as string | undefined;
 
   // Bootstrap: if at /trading-assistant and we have threads, route into the first one.
   useEffect(() => {

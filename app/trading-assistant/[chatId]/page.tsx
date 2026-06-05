@@ -4,11 +4,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, Info, Bot, User as UserIcon } from "lucide-react";
-import { useThreads, mockAssistantReply, type ChatMessage } from "@/lib/chat_store";
+import ReactMarkdown from "react-markdown";
+import { useThreads, type ChatMessage } from "@/lib/chat_store";
 
 export default function ThreadView() {
-  const params = useParams() as { tradingId: string };
-  const threadId = params.tradingId;
+  const params = useParams() as { chatId: string };
+  const threadId = params.chatId;
   const { threads, ready, appendMessage } = useThreads();
   const thread = useMemo(() => threads.find((t) => t.id === threadId), [threads, threadId]);
 
@@ -64,15 +65,45 @@ export default function ThreadView() {
     };
     appendMessage(thread.id, userMsg);
     setPending(true);
-    await new Promise((r) => setTimeout(r, 700 + Math.random() * 600));
-    appendMessage(thread.id, {
-      id: crypto.randomUUID(),
-      role: "assistant",
-      content: mockAssistantReply(text),
-      createdAt: Date.now(),
-    });
-    setPending(false);
-    setTimeout(() => textareaRef.current?.focus(), 0);
+
+    try {
+      // Call the real assistant API
+      const response = await fetch("/api/assistant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [...thread.messages, userMsg].map((msg) => ({
+            role: msg.role === "assistant" ? "model" : "user",
+            content: msg.content,
+          })),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to get response from assistant");
+      }
+
+      const data = await response.json();
+
+      appendMessage(thread.id, {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: data.text,
+        createdAt: Date.now(),
+      });
+    } catch (error) {
+      console.error("Assistant error:", error);
+      appendMessage(thread.id, {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content:
+          "Sorry, I encountered an error. Please try again.",
+        createdAt: Date.now(),
+      });
+    } finally {
+      setPending(false);
+      setTimeout(() => textareaRef.current?.focus(), 0);
+    }
   };
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -172,8 +203,18 @@ function MessageRow({ message }: { message: ChatMessage }) {
             {message.content}
           </div>
         ) : (
-          <div className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/95">
-            {message.content}
+          <div className="prose prose-invert prose-sm max-w-none text-sm leading-relaxed text-foreground/95">
+            <ReactMarkdown
+              components={{
+                h3: ({ children }) => <h3 className="text-base font-semibold mt-3 mb-2">{children}</h3>,
+                p: ({ children }) => <p className="mb-2">{children}</p>,
+                ul: ({ children }) => <ul className="list-disc list-inside mb-2">{children}</ul>,
+                li: ({ children }) => <li className="mb-1">{children}</li>,
+                strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+              }}
+            >
+              {message.content}
+            </ReactMarkdown>
           </div>
         )}
       </div>
