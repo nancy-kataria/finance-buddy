@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.47",
+    "@google/genai": "^2.8.0",
     "@langchain/textsplitters": "^1.0.1",
     "@pgtyped/runtime": "^2.4.2",
     "@prisma/adapter-pg": "^7.5.0",
