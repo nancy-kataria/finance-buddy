@@ -8,6 +8,7 @@ import {
   GraduationCap,
   ArrowRight,
   Loader2,
+  BarChart3,
 } from "lucide-react";
 import {
   formatRelative,
@@ -101,6 +102,12 @@ export function FolderView({
           >
             <Plus className="h-4 w-4" /> New Note
           </button>
+          <Link
+            href={`/chat?ticker=${folder.ticker}`}
+            className="inline-flex items-center gap-1.5 rounded-md bg-judge px-4 py-2 text-sm font-medium text-judge-foreground shadow-[var(--glow-judge)] transition hover:brightness-110"
+          >
+            <BarChart3 className="h-4 w-4" /> Bull v. Bear Analysis
+          </Link>
           <button
             onClick={onDeleteFolder}
             title="Delete entire notebook"
