@@ -15,6 +15,7 @@ export default function ThreadView() {
 
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
+  const [dbChatId, setDbChatId] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -67,15 +68,13 @@ export default function ThreadView() {
     setPending(true);
 
     try {
-      // Call the real assistant API
+      // Call the real assistant API with chatId for database persistence
       const response = await fetch("/api/assistant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: [...thread.messages, userMsg].map((msg) => ({
-            role: msg.role === "assistant" ? "model" : "user",
-            content: msg.content,
-          })),
+          messages: [...thread.messages, userMsg], // Send messages as-is; API handles role conversion
+          chatId: dbChatId, // Send the current chat ID (or null for new chats)
         }),
       });
 
@@ -84,6 +83,11 @@ export default function ThreadView() {
       }
 
       const data = await response.json();
+
+      // Update the chatId if this was a new conversation
+      if (!dbChatId && data.chatId) {
+        setDbChatId(data.chatId);
+      }
 
       appendMessage(thread.id, {
         id: crypto.randomUUID(),
