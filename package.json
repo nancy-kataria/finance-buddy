@@ -1,5 +1,5 @@
 {
-  "name": "finance-buddy",
+  "name": "bull-v-bear",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -19,7 +19,6 @@
     "@prisma/adapter-pg": "^7.5.0",
     "@prisma/client": "^7.5.0",
     "@supabase/ssr": "^0.10.2",
-    "@tanstack/react-router": "^1.168.26",
     "@tavily/ai-sdk": "^0.4.1",
     "ai": "^6.0.134",
     "dotenv": "^17.3.1",
