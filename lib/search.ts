@@ -1,4 +1,11 @@
 import { prisma } from '@/prisma/prisma';
+import type { NoteChunk } from '@/types';
+
+type NoteChunkWithRelations = NoteChunk & {
+  note: {
+    ticker: { symbol: string };
+  };
+};
 
 export async function findRelevantFinance(query: string, userId?: string | null, limit = 3, ticker?: string | null,) {
   // Search note chunks by content using case-insensitive pattern matching
@@ -22,7 +29,7 @@ export async function findRelevantFinance(query: string, userId?: string | null,
   });
 
   // Map to match the expected result format
-  return results.map((chunk) => ({
+  return results.map((chunk: NoteChunkWithRelations) => ({
     id: chunk.id,
     content: chunk.chunkContent,
     metadata: { ticker: chunk.note.ticker.symbol },
