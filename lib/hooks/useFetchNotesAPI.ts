@@ -1,9 +1,9 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import type { TradingNote } from '@/types';
 
 export function useFetchNotesAPI(tickerId?: string) {
   const [notes, setNotes] = useState<TradingNote[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchNotes = useCallback(async () => {
@@ -34,9 +34,5 @@ export function useFetchNotesAPI(tickerId?: string) {
     }
   }, [tickerId]);
 
-  useEffect(() => {
-    fetchNotes();
-  }, [fetchNotes]);
-
-  return { notes, isLoading, error, refetch: fetchNotes };
+  return { notes, isLoading, error, fetchNotes };
 }
