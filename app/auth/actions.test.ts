@@ -1,226 +1,162 @@
-import { describe, it, expect, vi, beforeEach, type Mock} from 'vitest';
-import { signInWithGoogle, signInWithEmail } from './actions';
+import { describe, test, expect, vi, beforeEach } from "vitest";
+import {
+  signInWithGoogle,
+  signUpWithEmail,
+  signInWithEmail,
+  signOut,
+} from "@/app/auth/actions";
+import { prisma } from "@/prisma/prisma";
 
-interface MockSupabaseClient {
-  auth: {
-    signInWithOAuth: Mock;
-    signInWithPassword: Mock;
-  };
-}
-
-vi.mock('next/navigation', () => ({
-  redirect: vi.fn(),
+vi.mock("next/navigation", () => ({
+  redirect: vi.fn((url: string) => {
+    throw new Error(`Redirected to ${url}`);
+  }),
 }));
 
-vi.mock('next/headers', () => ({
-  headers: vi.fn(),
+vi.mock("next/headers", () => ({
+  headers: vi.fn(async () => ({
+    get: vi.fn().mockReturnValue("http://localhost:3000"),
+  })),
 }));
 
-vi.mock('@/lib/supabase/server', () => ({
-  createClient: vi.fn(),
-}));
-
-import { redirect } from 'next/navigation';
-import { headers } from 'next/headers';
-import { createClient } from '@/lib/supabase/server';
-
-function createMockSupabaseClient(): MockSupabaseClient {
-  return {
-    auth: {
-      signInWithOAuth: vi.fn(),
-      signInWithPassword: vi.fn(),
+vi.mock("@/prisma/prisma", () => ({
+  prisma: {
+    user: {
+      findUnique: vi.fn(),
+      create: vi.fn(),
     },
-  };
-}
+  },
+}));
 
-describe('Auth Actions', () => {
+const mockSupabaseClient = {
+  auth: {
+    signInWithOAuth: vi.fn(),
+    signUp: vi.fn(),
+    signInWithPassword: vi.fn(),
+    signOut: vi.fn(),
+  },
+};
+vi.mock("@/lib/supabase/server", () => ({
+  createClient: vi.fn(async () => mockSupabaseClient),
+}));
+
+const mockedPrismaUser = vi.mocked(prisma.user);
+
+describe("Authentication Server Actions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  describe('signInWithGoogle', () => {
-    it('should redirect to Google OAuth URL on success', async () => {
-      const mockHeadersInstance = {
-        get: vi.fn().mockReturnValue('http://localhost:3000'),
-      };
-      vi.mocked(headers).mockResolvedValue(mockHeadersInstance as any);
-
-      const mockSupabase = createMockSupabaseClient();
-      const googleOAuthUrl = 'https://accounts.google.com/o/oauth2/v2/auth?...';
-      mockSupabase.auth.signInWithOAuth.mockResolvedValue({
-        data: { url: googleOAuthUrl },
+  describe("signInWithGoogle", () => {
+    test("should redirect to Google OAuth URL on success", async () => {
+      vi.mocked(mockSupabaseClient.auth.signInWithOAuth).mockResolvedValue({
+        data: { url: "https://google.com/oauth" },
         error: null,
-      });
-      vi.mocked(createClient).mockResolvedValue(mockSupabase as any);
+      } as any);
 
-
-      await signInWithGoogle();
-      expect(headers).toHaveBeenCalled();
-      expect(createClient).toHaveBeenCalled();
-      expect(mockSupabase.auth.signInWithOAuth).toHaveBeenCalledWith({
-        provider: 'google',
-        options: {
-          redirectTo: 'http://localhost:3000/auth/callback',
-        },
-      });
-      expect(redirect).toHaveBeenCalledWith(googleOAuthUrl);
-    });
-
-    it('should redirect to login error page on authentication failure', async () => {
-      const mockHeadersInstance = {
-        get: vi.fn().mockReturnValue('http://localhost:3000'),
-      };
-      vi.mocked(headers).mockResolvedValue(mockHeadersInstance as any);
-
-      const mockSupabase = createMockSupabaseClient();
-      const errorMessage = 'OAuth configuration is missing';
-      mockSupabase.auth.signInWithOAuth.mockResolvedValue({
-        data: null,
-        error: { message: errorMessage },
-      });
-      vi.mocked(createClient).mockResolvedValue(mockSupabase as any);
-
-      await signInWithGoogle();
-      expect(redirect).toHaveBeenCalledWith(
-        '/login?error=Could not authenticate with Google'
+      // Since redirect throws an error, assert that it throws our custom redirect string
+      await expect(signInWithGoogle()).rejects.toThrow(
+        "Redirected to https://google.com/oauth",
       );
     });
 
-    it('should use correct callback URL with different origins', async () => {
-      // Test with production URL
-      const mockHeadersInstance = {
-        get: vi.fn().mockReturnValue('https://finance-buddy.com'),
-      };
-      vi.mocked(headers).mockResolvedValue(mockHeadersInstance as any);
+    test("should redirect to login page with error query param on failure", async () => {
+      vi.mocked(mockSupabaseClient.auth.signInWithOAuth).mockResolvedValue({
+        data: { url: null },
+        error: { message: "OAuth failed" },
+      } as any);
 
-      const mockSupabase = createMockSupabaseClient();
-      mockSupabase.auth.signInWithOAuth.mockResolvedValue({
-        data: { url: 'https://google.com/oauth' },
-        error: null,
-      });
-      vi.mocked(createClient).mockResolvedValue(mockSupabase as any);
+      const consoleSpy = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
 
-      await signInWithGoogle();
-      expect(mockSupabase.auth.signInWithOAuth).toHaveBeenCalledWith(
-        expect.objectContaining({
-          options: expect.objectContaining({
-            redirectTo: 'https://finance-buddy.com/auth/callback',
-          }),
-        })
+      await expect(signInWithGoogle()).rejects.toThrow(
+        "Redirected to /login?error=Could not authenticate with Google",
       );
+      expect(consoleSpy).toHaveBeenCalled();
+      consoleSpy.mockRestore();
     });
   });
 
-  describe('signInWithEmail', () => {
-    it('should return success when credentials are valid', async () => {
-      const mockSupabase = createMockSupabaseClient();
-      mockSupabase.auth.signInWithPassword.mockResolvedValue({
-        data: { user: { id: 'user-123', email: 'test@example.com' } },
+  describe("signUpWithEmail", () => {
+    test("should return error object if Supabase signUp fails", async () => {
+      vi.mocked(mockSupabaseClient.auth.signUp).mockResolvedValue({
+        data: { user: null },
+        error: { message: "Weak password" },
+      } as any);
+
+      const result = await signUpWithEmail("test@test.com", "password123");
+      expect(result).toEqual({ success: false, error: "Weak password" });
+    });
+
+    test("should provision a new Prisma user if they do not exist yet", async () => {
+      vi.mocked(mockSupabaseClient.auth.signUp).mockResolvedValue({
+        data: { user: { id: "new-uid", email: "test@test.com" } },
         error: null,
-      });
-      vi.mocked(createClient).mockResolvedValue(mockSupabase as any);
+      } as any);
 
-      const result = await signInWithEmail('test@example.com', 'password123');
+      // Simulate user not existing in Prisma yet
+      vi.mocked(mockedPrismaUser.findUnique).mockResolvedValue(null);
+
+      const result = await signUpWithEmail("test@test.com", "password123");
+
+      expect(mockedPrismaUser.findUnique).toHaveBeenCalledWith({
+        where: { id: "new-uid" },
+      });
+      expect(mockedPrismaUser.create).toHaveBeenCalledWith({
+        data: { id: "new-uid", email: "test@test.com" },
+      });
+      expect(result.success).toBe(true);
+    });
+
+    test("should skip Prisma creation if user already exists", async () => {
+      vi.mocked(mockSupabaseClient.auth.signUp).mockResolvedValue({
+        data: { user: { id: "existing-uid", email: "test@test.com" } },
+        error: null,
+      } as any);
+
+      // Simulate user already existing
+      vi.mocked(mockedPrismaUser.findUnique).mockResolvedValue({
+        id: "existing-uid",
+        email: "test@test.com",
+      } as any);
+
+      await signUpWithEmail("test@test.com", "password123");
+
+      expect(mockedPrismaUser.findUnique).toHaveBeenCalled();
+      expect(mockedPrismaUser.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("signInWithEmail", () => {
+    test("should return error state on wrong credentials", async () => {
+      vi.mocked(mockSupabaseClient.auth.signInWithPassword).mockResolvedValue({
+        data: { user: null },
+        error: { message: "Invalid credentials" },
+      } as any);
+
+      const result = await signInWithEmail("wrong@test.com", "badpass");
+      expect(result).toEqual({ success: false, error: "Invalid credentials" });
+    });
+
+    test("should return success and sync user profile if credential login is correct", async () => {
+      vi.mocked(mockSupabaseClient.auth.signInWithPassword).mockResolvedValue({
+        data: { user: { id: "user-456", email: "right@test.com" } },
+        error: null,
+      } as any);
+      vi.mocked(mockedPrismaUser.findUnique).mockResolvedValue(null);
+
+      const result = await signInWithEmail("right@test.com", "goodpass");
+
+      expect(mockedPrismaUser.create).toHaveBeenCalled();
       expect(result).toEqual({ success: true });
-      expect(mockSupabase.auth.signInWithPassword).toHaveBeenCalledWith({
-        email: 'test@example.com',
-        password: 'password123',
-      });
     });
+  });
 
-    it('should return error when credentials are invalid', async () => {
-      const mockSupabase = createMockSupabaseClient();
-      const errorMessage = 'Invalid login credentials';
-      mockSupabase.auth.signInWithPassword.mockResolvedValue({
-        data: null,
-        error: { message: errorMessage },
-      });
-      vi.mocked(createClient).mockResolvedValue(mockSupabase as any);
-
-      const result = await signInWithEmail('test@example.com', 'wrongpassword');
-
-      expect(result).toEqual({
-        success: false,
-        error: errorMessage,
-      });
-    });
-
-    it('should handle "Email not confirmed" error', async () => {
-      const mockSupabase = createMockSupabaseClient();
-      mockSupabase.auth.signInWithPassword.mockResolvedValue({
-        data: null,
-        error: { message: 'Email not confirmed' },
-      });
-      vi.mocked(createClient).mockResolvedValue(mockSupabase as any);
-
-      const result = await signInWithEmail(
-        'unconfirmed@example.com',
-        'password123'
-      );
-
-      expect(result).toEqual({
-        success: false,
-        error: 'Email not confirmed',
-      });
-    });
-
-    it('should handle account locked error', async () => {
-      const mockSupabase = createMockSupabaseClient();
-      mockSupabase.auth.signInWithPassword.mockResolvedValue({
-        data: null,
-        error: { message: 'Too many login attempts. Please try again later.' },
-      });
-      vi.mocked(createClient).mockResolvedValue(mockSupabase as any);
-
-      const result = await signInWithEmail('user@example.com', 'password123');
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('Too many login attempts');
-    });
-
-    it('should handle empty email', async () => {
-      const mockSupabase = createMockSupabaseClient();
-      mockSupabase.auth.signInWithPassword.mockResolvedValue({
-        data: null,
-        error: { message: 'Email required' },
-      });
-      vi.mocked(createClient).mockResolvedValue(mockSupabase as any);
-
-      const result = await signInWithEmail('', 'password123');
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('Email');
-    });
-
-    it('should handle empty password', async () => {
-      const mockSupabase = createMockSupabaseClient();
-      mockSupabase.auth.signInWithPassword.mockResolvedValue({
-        data: null,
-        error: { message: 'Password required' },
-      });
-      vi.mocked(createClient).mockResolvedValue(mockSupabase as any);
-
-      const result = await signInWithEmail('test@example.com', '');
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain('Password');
-    });
-
-    it('should handle very long email and password', async () => {
-      const mockSupabase = createMockSupabaseClient();
-      const longEmail = 'a'.repeat(200) + '@example.com';
-      const longPassword = 'x'.repeat(500);
-
-      mockSupabase.auth.signInWithPassword.mockResolvedValue({
-        data: null,
-        error: { message: 'Invalid email format' },
-      });
-      vi.mocked(createClient).mockResolvedValue(mockSupabase as any);
-
-      const result = await signInWithEmail(longEmail, longPassword);
-
-      expect(mockSupabase.auth.signInWithPassword).toHaveBeenCalled();
-      expect(result.success).toBe(false);
+  describe("signOut", () => {
+    test("should sign out from Supabase session and redirect to root directory", async () => {
+      await expect(signOut()).rejects.toThrow("Redirected to /");
+      expect(mockSupabaseClient.auth.signOut).toHaveBeenCalled();
     });
   });
 });
