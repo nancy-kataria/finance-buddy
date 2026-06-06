@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 
 export type ChatMessage = {
   id: string;
@@ -61,11 +61,7 @@ export function useThreads() {
     return [t];
   });
 
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    setReady(true);
-  }, []);
+  const [ready] = useState(true);
 
   const update = useCallback((updater: (prev: Thread[]) => Thread[]) => {
     setThreads((prev) => {
