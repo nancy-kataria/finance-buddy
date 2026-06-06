@@ -10,12 +10,8 @@ import {
   Loader2,
   BarChart3,
 } from "lucide-react";
-import {
-  formatRelative,
-  formatDate,
-  type Note,
-  type Folder,
-} from "@/lib/mock_notes";
+import { formatRelative, formatDate, Folder } from "@/lib/mock_notes";
+import { type Note } from "@/types";
 import { useAlphaVantagePrice } from "@/lib/useAlphaVantagePrice";
 
 interface FolderViewProps {
@@ -82,7 +78,9 @@ export function FolderView({
               ) : (
                 <>
                   <span className="font-mono text-2xl tabular-nums">
-                    {price.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    {price.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                    })}
                   </span>
                   <span
                     className={[
