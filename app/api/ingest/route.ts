@@ -3,7 +3,7 @@ import { prisma } from "@/prisma/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { openai } from "@ai-sdk/openai";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
-import { embed } from "ai";
+import { embedMany } from "ai";
 
 export async function POST(req: Request) {
   try {
@@ -39,29 +39,34 @@ export async function POST(req: Request) {
     }
 
     const splitter = new RecursiveCharacterTextSplitter({
-      chunkSize: 1000, 
-      chunkOverlap: 200, 
+      chunkSize: 1000,
+      chunkOverlap: 200,
     });
 
     const chunks = await splitter.splitText(content);
 
-    // Process all vector computations and database insertions concurrently
+    // Remove any chunks from a previous ingest of this note so re-ingesting
+    // (e.g. after an edit) replaces rather than duplicates them.
+    await prisma.noteChunk.deleteMany({ where: { noteId } });
+
+    // Embed every chunk in a single batched call.
+    const { embeddings } = await embedMany({
+      model: openai.embedding("text-embedding-3-small"),
+      values: chunks.map(
+        (chunkContent) =>
+          `Ticker: ${ticker.toUpperCase()} \n\n Content: ${chunkContent}`,
+      ),
+    });
+
+    // Create each chunk record, then inject its vector coordinates.
     await Promise.all(
-      chunks.map(async (chunkContent) => {
-        // Create relational chunk record
+      chunks.map(async (chunkContent, i) => {
         const chunkRecord = await prisma.noteChunk.create({
           data: { noteId, chunkContent },
         });
 
-        // Calculate vector coordinates
-        const { embedding } = await embed({
-          model: openai.embedding("text-embedding-3-small"),
-          value: `Ticker: ${ticker.toUpperCase()} \n\n Content: ${chunkContent}`,
-        });
+        const vectorString = `[${embeddings[i].join(",")}]`;
 
-        const vectorString = `[${embedding.join(",")}]`;
-
-        // Inject coordinates directly into Supabase
         await prisma.$executeRaw`
           UPDATE "NoteChunk"
           SET "embedding" = ${vectorString}::vector
