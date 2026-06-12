@@ -4,7 +4,7 @@ import {
   lastEdited,
   formatRelative,
   type Folder,
-} from "@/lib/mock_notes";
+} from "@/lib/trading_notes";
 
 interface FolderSidebarProps {
   folders: Folder[];

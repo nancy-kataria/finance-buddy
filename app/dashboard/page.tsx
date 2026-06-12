@@ -41,6 +41,7 @@ export default function TradingNotesPage() {
   // Transform API data to folder format
   const folders: Folder[] = useMemo(() => {
     return tickers.map((ticker) => ({
+      id: ticker.symbol,
       ticker: ticker.symbol,
       notes: (ticker.notes || []).map((note: TradingNote) => ({
         id: note.id,

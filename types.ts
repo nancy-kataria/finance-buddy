@@ -193,6 +193,7 @@ export type Note = {
 };
 
 export interface Folder {
+  id: string;
   ticker: string;
   notes: (Note & { dbId?: string })[];
 }

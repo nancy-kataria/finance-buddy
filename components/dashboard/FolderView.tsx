@@ -10,8 +10,8 @@ import {
   Loader2,
   BarChart3,
 } from "lucide-react";
-import { formatRelative, formatDate, Folder } from "@/lib/mock_notes";
-import { type Note } from "@/types";
+import { formatRelative, formatDate } from "@/lib/trading_notes";
+import type { Note, Folder } from "@/types";
 import { useAlphaVantagePrice } from "@/lib/useAlphaVantagePrice";
 
 interface FolderViewProps {
