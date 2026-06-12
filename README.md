@@ -33,7 +33,7 @@ The platform is designed for educational and research purposes. Instead of relyi
    ```
    DATABASE_URL=your_postgres_connection_string
    OPENAI_API_KEY=your_openai_key
-   GOOGLE_GENAI_API_KEY=your_google_genai_key
+   GEMINI_API_KEY=your_google_genai_key
    TAVILY_API_KEY=your_tavily_key
    SUPABASE_URL=your_supabase_url
    SUPABASE_ANON_KEY=your_supabase_anon_key
